@@ -1,13 +1,15 @@
 package g
 
 import (
-	"github.com/garyburd/redigo/redis"
 	"log"
 	"time"
+
+	"github.com/garyburd/redigo/redis"
 )
 
 var RedisConnPool *redis.Pool
 
+// 初始化redis连接池
 func InitRedisConnPool() {
 	redisConfig := Config().Redis
 

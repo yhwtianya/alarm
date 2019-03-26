@@ -2,11 +2,12 @@ package cron
 
 import (
 	"encoding/json"
+	"log"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/open-falcon/alarm/g"
 	"github.com/open-falcon/common/model"
-	"log"
-	"time"
 )
 
 func ReadHighEvent() {
@@ -55,6 +56,8 @@ func popEvent(queues []string) (*model.Event, error) {
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
 
+	// brpop(key1, key2,… key N, timeout)返回并删除名称为key...的list中的尾元素
+	// redis.Strings将redis查询结果转为[]string
 	reply, err := redis.Strings(rc.Do("BRPOP", params...))
 	if err != nil {
 		log.Printf("get alarm event from redis fail: %v", err)
