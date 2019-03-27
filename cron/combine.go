@@ -3,15 +3,17 @@ package cron
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/open-falcon/alarm/api"
 	"github.com/open-falcon/alarm/g"
 	redi "github.com/open-falcon/alarm/redis"
-	"log"
-	"strings"
-	"time"
 )
 
+// 周期性读取Sms待告警合并队列，合并,并放入Sms队列
 func CombineSms() {
 	for {
 		// 每分钟读取处理一次
@@ -20,6 +22,7 @@ func CombineSms() {
 	}
 }
 
+// 周期性读取Mail待告警合并队列，合并,并放入Mail队列
 func CombineMail() {
 	for {
 		// 每分钟读取处理一次
@@ -28,6 +31,7 @@ func CombineMail() {
 	}
 }
 
+// Mail告警压缩,并放入Mail队列
 func combineMail() {
 	dtos := popAllMailDto()
 	count := len(dtos)
@@ -58,12 +62,14 @@ func combineMail() {
 		for i := 0; i < size; i++ {
 			contentArr[i] = arr[i].Content
 		}
+		// 多个告警内容拼接到一个邮件中
 		content := strings.Join(contentArr, "\r\n")
 
 		redi.WriteMail([]string{arr[0].Email}, subject, content)
 	}
 }
 
+// Sms告警压缩,并放入Sms队列
 func combineSms() {
 	dtos := popAllSmsDto()
 	count := len(dtos)
@@ -73,6 +79,7 @@ func combineSms() {
 
 	dtoMap := make(map[string][]*SmsDto)
 	for i := 0; i < count; i++ {
+		//Priority+Status+Phone+Metric共同作为key
 		key := fmt.Sprintf("%d%s%s%s", dtos[i].Priority, dtos[i].Status, dtos[i].Phone, dtos[i].Metric)
 		if _, ok := dtoMap[key]; ok {
 			dtoMap[key] = append(dtoMap[key], dtos[i])
@@ -97,11 +104,13 @@ func combineSms() {
 
 		first := arr[0].Content
 		t := strings.Split(first, "][")
+		// 故障描述信息
 		eg := ""
 		if len(t) >= 3 {
 			eg = t[2]
 		}
 
+		// 多个告警内容生成一个url，供用户访问
 		path, err := api.LinkToSMS(content)
 		sms := ""
 		if err != nil || path == "" {
@@ -117,6 +126,7 @@ func combineSms() {
 
 }
 
+// 读取Sms信息队列中所有数据
 func popAllSmsDto() []*SmsDto {
 	ret := []*SmsDto{}
 	queue := g.Config().Redis.UserSmsQueue
@@ -150,6 +160,7 @@ func popAllSmsDto() []*SmsDto {
 	return ret
 }
 
+// 读取Mail信息队列中所有数据
 func popAllMailDto() []*MailDto {
 	ret := []*MailDto{}
 	queue := g.Config().Redis.UserMailQueue

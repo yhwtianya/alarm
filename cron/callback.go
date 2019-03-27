@@ -2,14 +2,16 @@ package cron
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/open-falcon/alarm/api"
 	"github.com/open-falcon/alarm/redis"
 	"github.com/open-falcon/common/model"
 	"github.com/toolkits/net/httplib"
-	"strings"
-	"time"
 )
 
+// 告警回调流程
 func HandleCallback(event *model.Event, action *api.Action) {
 
 	// falcon,dinp
@@ -21,6 +23,8 @@ func HandleCallback(event *model.Event, action *api.Action) {
 		phones, mails = api.ParseTeams(teams)
 		smsContent := GenerateSmsContent(event)
 		mailContent := GenerateMailContent(event)
+
+		// 回调前发送Sms或Mail
 		if action.BeforeCallbackSms == 1 {
 			redis.WriteSms(phones, smsContent)
 		}
@@ -30,9 +34,12 @@ func HandleCallback(event *model.Event, action *api.Action) {
 		}
 	}
 
+	// 执行url回调
 	message := Callback(event, action)
 
 	if teams != "" {
+		// 回调后发送Sms或Mail
+		// 消息内容为回调函数的返回值
 		if action.AfterCallbackSms == 1 {
 			redis.WriteSms(phones, message)
 		}
@@ -44,6 +51,7 @@ func HandleCallback(event *model.Event, action *api.Action) {
 
 }
 
+// 执行url回调,使用get方法，返回get结果
 func Callback(event *model.Event, action *api.Action) string {
 	if action.Url == "" {
 		return "callback url is blank"

@@ -10,6 +10,7 @@ import (
 	"github.com/open-falcon/common/model"
 )
 
+// 持续读取HighQueues,进行保存
 func ReadHighEvent() {
 	queues := g.Config().Redis.HighQueues
 	if len(queues) == 0 {
@@ -17,6 +18,7 @@ func ReadHighEvent() {
 	}
 
 	for {
+		// 无限循环
 		event, err := popEvent(queues)
 		if err != nil {
 			time.Sleep(time.Second)
@@ -26,6 +28,7 @@ func ReadHighEvent() {
 	}
 }
 
+// 持续读取LowQueues,进行保存
 func ReadLowEvent() {
 	queues := g.Config().Redis.LowQueues
 	if len(queues) == 0 {
@@ -42,6 +45,7 @@ func ReadLowEvent() {
 	}
 }
 
+// 取出并返回一个event。如果event状态为OK，从内存Events中删除，否则保存或更新到内存Events
 func popEvent(queues []string) (*model.Event, error) {
 
 	count := len(queues)
@@ -56,8 +60,8 @@ func popEvent(queues []string) (*model.Event, error) {
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
 
-	// brpop(key1, key2,… key N, timeout)返回并删除名称为key...的list中的尾元素
-	// redis.Strings将redis查询结果转为[]string
+	// brpop(key1, key2,… key N, timeout)返回其中任一key中的尾元素,如果所有key都没值，则超时
+	// redis.Strings将redis查询结果转为[]string，返回值为[key,value]
 	reply, err := redis.Strings(rc.Do("BRPOP", params...))
 	if err != nil {
 		log.Printf("get alarm event from redis fail: %v", err)

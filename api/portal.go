@@ -2,13 +2,15 @@ package api
 
 import (
 	"fmt"
-	"github.com/open-falcon/alarm/g"
-	"github.com/toolkits/net/httplib"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/open-falcon/alarm/g"
+	"github.com/toolkits/net/httplib"
 )
 
+// Action数据结构
 type Action struct {
 	Id                 int    `json:"id"`
 	Uic                string `json:"uic"`
@@ -20,18 +22,22 @@ type Action struct {
 	AfterCallbackMail  int    `json:"after_callback_mail"`
 }
 
+// portal返回的Action响应结构
 type ActionWrap struct {
 	Msg  string  `json:"msg"`
 	Data *Action `json:"data"`
 }
 
+// Action缓存
 type ActionCache struct {
 	sync.RWMutex
 	M map[int]*Action
 }
 
+// 缓存所有Action
 var Actions = &ActionCache{M: make(map[int]*Action)}
 
+// 根据id获取缓存中的Action
 func (this *ActionCache) Get(id int) *Action {
 	this.RLock()
 	defer this.RUnlock()
@@ -43,13 +49,16 @@ func (this *ActionCache) Get(id int) *Action {
 	return val
 }
 
+// 增加或更新Action
 func (this *ActionCache) Set(id int, action *Action) {
 	this.Lock()
 	defer this.Unlock()
 	this.M[id] = action
 }
 
+// 获取Action，先通过portal获取，获取失败则从缓存获取
 func GetAction(id int) *Action {
+	// 每次通过url获取，效率低
 	action := CurlAction(id)
 
 	if action != nil {
@@ -61,6 +70,7 @@ func GetAction(id int) *Action {
 	return action
 }
 
+// 从portal获取action信息
 func CurlAction(id int) *Action {
 	if id <= 0 {
 		return nil

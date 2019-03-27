@@ -2,12 +2,14 @@ package redis
 
 import (
 	"encoding/json"
-	"github.com/open-falcon/alarm/g"
-	"github.com/open-falcon/sender/model"
 	"log"
 	"strings"
+
+	"github.com/open-falcon/alarm/g"
+	"github.com/open-falcon/sender/model"
 )
 
+// 发送msg到redis列表
 func LPUSH(queue, message string) {
 	rc := g.RedisConnPool.Get()
 	defer rc.Close()
@@ -17,11 +19,13 @@ func LPUSH(queue, message string) {
 	}
 }
 
+// 检查sms合法性，减少空格，发送sms到redis队列
 func WriteSmsModel(sms *model.Sms) {
 	if sms == nil {
 		return
 	}
 
+	//检查sms合法性，减少空格
 	bs, err := json.Marshal(sms)
 	if err != nil {
 		log.Println(err)
@@ -31,6 +35,7 @@ func WriteSmsModel(sms *model.Sms) {
 	LPUSH(g.Config().Queue.Sms, string(bs))
 }
 
+// 检查mail合法性，减少空格，发送mail到redis队列
 func WriteMailModel(mail *model.Mail) {
 	if mail == nil {
 		return
@@ -45,6 +50,7 @@ func WriteMailModel(mail *model.Mail) {
 	LPUSH(g.Config().Queue.Mail, string(bs))
 }
 
+// 将Sms放入redis队列
 func WriteSms(tos []string, content string) {
 	if len(tos) == 0 {
 		return
@@ -54,6 +60,7 @@ func WriteSms(tos []string, content string) {
 	WriteSmsModel(sms)
 }
 
+// 将mail放入redis队列
 func WriteMail(tos []string, subject, content string) {
 	if len(tos) == 0 {
 		return

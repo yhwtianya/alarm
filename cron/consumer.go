@@ -2,11 +2,12 @@ package cron
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/open-falcon/alarm/api"
 	"github.com/open-falcon/alarm/g"
 	"github.com/open-falcon/alarm/redis"
 	"github.com/open-falcon/common/model"
-	"log"
 )
 
 func consume(event *model.Event, isHigh bool) {
@@ -15,12 +16,15 @@ func consume(event *model.Event, isHigh bool) {
 		return
 	}
 
+	// 获取action
 	action := api.GetAction(actionId)
 	if action == nil {
 		return
 	}
 
 	if action.Callback == 1 {
+		// 执行回调流程，立即返回，不再走默认的Sms和Mail流程
+		// 回调配置中可以设置回调前后是否发送Sms或Mail
 		HandleCallback(event, action)
 		return
 	}
@@ -32,6 +36,7 @@ func consume(event *model.Event, isHigh bool) {
 	}
 }
 
+// 消费高优先级event，构造告警结构，放入对应告警队列
 // 高优先级的不做报警合并
 func consumeHighEvents(event *model.Event, action *api.Action) {
 	if action.Uic == "" {
@@ -43,13 +48,16 @@ func consumeHighEvents(event *model.Event, action *api.Action) {
 	smsContent := GenerateSmsContent(event)
 	mailContent := GenerateMailContent(event)
 
+	// 这里不做告警合并，直接写入发送队列
 	if event.Priority() < 3 {
+		// Priority小于3，触发发送SMS
 		redis.WriteSms(phones, smsContent)
 	}
 
 	redis.WriteMail(mails, smsContent, mailContent)
 }
 
+// 消费低优先级event，构造告警结构，放入对应告警合并队列
 // 低优先级的做报警合并
 func consumeLowEvents(event *model.Event, action *api.Action) {
 	if action.Uic == "" {
@@ -57,12 +65,14 @@ func consumeLowEvents(event *model.Event, action *api.Action) {
 	}
 
 	if event.Priority() < 3 {
+		// Priority小于3，触发发送SMS
 		ParseUserSms(event, action)
 	}
 
 	ParseUserMail(event, action)
 }
 
+// 构造sms结构，放入低优先级sms待告警合并队列
 func ParseUserSms(event *model.Event, action *api.Action) {
 	userMap := api.GetUsers(action.Uic)
 
@@ -71,6 +81,7 @@ func ParseUserSms(event *model.Event, action *api.Action) {
 	status := event.Status
 	priority := event.Priority()
 
+	// 低优先级sms待告警合并队列
 	queue := g.Config().Redis.UserSmsQueue
 
 	rc := g.RedisConnPool.Get()
@@ -97,6 +108,7 @@ func ParseUserSms(event *model.Event, action *api.Action) {
 	}
 }
 
+// 构造mail结构，放入低优先级mail待告警合并队列
 func ParseUserMail(event *model.Event, action *api.Action) {
 	userMap := api.GetUsers(action.Uic)
 
@@ -106,6 +118,7 @@ func ParseUserMail(event *model.Event, action *api.Action) {
 	status := event.Status
 	priority := event.Priority()
 
+	// 低优先级mail待告警合并队列
 	queue := g.Config().Redis.UserMailQueue
 
 	rc := g.RedisConnPool.Get()

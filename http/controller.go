@@ -11,6 +11,9 @@ import (
 	"github.com/toolkits/file"
 )
 
+// 通过内嵌beego.Controller，实现了beego.Controller所有方法
+// MainController可以重写beego.Controller已有方法修改beego默认行为
+// MainController可以新写处理函数，通过beego.Router("/", &MainController{}, "get:Index")这种形式注册即可
 type MainController struct {
 	beego.Controller
 }
@@ -38,6 +41,7 @@ func (this *MainController) ConfigReload() {
 	}
 }
 
+// 返回按时间排序的未恢复告警列表
 func (this *MainController) Index() {
 	events := g.Events.Clone()
 
@@ -64,6 +68,7 @@ func (this *MainController) Index() {
 	this.Data["Events"] = beforeOrder
 }
 
+// 删除内存中对应id的EventDto
 func (this *MainController) Solve() {
 	ids := this.GetString("ids")
 	if ids == "" {

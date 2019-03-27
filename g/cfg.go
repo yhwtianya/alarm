@@ -2,9 +2,10 @@ package g
 
 import (
 	"encoding/json"
-	"github.com/toolkits/file"
 	"log"
 	"sync"
+
+	"github.com/toolkits/file"
 )
 
 type HttpConfig struct {
@@ -20,10 +21,10 @@ type QueueConfig struct {
 type RedisConfig struct {
 	Addr          string   `json:"addr"`
 	MaxIdle       int      `json:"maxIdle"`
-	HighQueues    []string `json:"highQueues"`
-	LowQueues     []string `json:"lowQueues"`
-	UserSmsQueue  string   `json:"userSmsQueue"`
-	UserMailQueue string   `json:"userMailQueue"`
+	HighQueues    []string `json:"highQueues"`    //高优先级event队列，e.g. p0-p5
+	LowQueues     []string `json:"lowQueues"`     //低优先级event队列，e.g. p6
+	UserSmsQueue  string   `json:"userSmsQueue"`  //低优先级sms待告警合并队列
+	UserMailQueue string   `json:"userMailQueue"` //低优先级mail待告警合并队列
 }
 
 type ApiConfig struct {

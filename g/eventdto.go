@@ -2,9 +2,10 @@ package g
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/open-falcon/common/model"
 	"github.com/open-falcon/common/utils"
-	"sync"
 )
 
 type EventDto struct {
@@ -39,6 +40,7 @@ type SafeEvents struct {
 	M map[string]*EventDto
 }
 
+// 实现按时间排序功能的EventDto切片
 type OrderedEvents []*EventDto
 
 func (this OrderedEvents) Len() int {
@@ -53,18 +55,21 @@ func (this OrderedEvents) Less(i, j int) bool {
 
 var Events = &SafeEvents{M: make(map[string]*EventDto)}
 
+// 根据Event id删除对应EventDto
 func (this *SafeEvents) Delete(id string) {
 	this.Lock()
 	defer this.Unlock()
 	delete(this.M, id)
 }
 
+// EventDto总数
 func (this *SafeEvents) Len() int {
 	this.RLock()
 	defer this.RUnlock()
 	return len(this.M)
 }
 
+// clone自身map，返回
 func (this *SafeEvents) Clone() map[string]*EventDto {
 	m := make(map[string]*EventDto)
 	this.RLock()
@@ -75,7 +80,9 @@ func (this *SafeEvents) Clone() map[string]*EventDto {
 	return m
 }
 
+// Event转EventDto结构，并更新到SafeEvents
 func (this *SafeEvents) Put(event *model.Event) {
+	// 恢复告警，在内存中删除对应EventDto
 	if event.Status == "OK" {
 		this.Delete(event.Id)
 		return
@@ -110,6 +117,7 @@ func (this *SafeEvents) Put(event *model.Event) {
 	this.M[dto.Id] = dto
 }
 
+// 生成查看对应template或expression的url
 func Link(event *model.Event) string {
 	tplId := event.TplId()
 	if tplId != 0 {

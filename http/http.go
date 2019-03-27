@@ -9,12 +9,19 @@ import (
 	"github.com/open-falcon/alarm/g"
 )
 
+// 注册MainController里的处理函数
 func configRoutes() {
+	// 返回按时间排序的未恢复告警列表
 	beego.Router("/", &MainController{}, "get:Index")
+	// 版本
 	beego.Router("/version", &MainController{}, "get:Version")
+	// 连通性
 	beego.Router("/health", &MainController{}, "get:Health")
+	// workdir
 	beego.Router("/workdir", &MainController{}, "get:Workdir")
+	// 热加载配置
 	beego.Router("/config/reload", &MainController{}, "get:ConfigReload")
+	// 删除内存中对应id的EventDto
 	beego.Router("/event/solve", &MainController{}, "post:Solve")
 }
 
@@ -49,6 +56,7 @@ func Duration(now, before int64) string {
 
 func init() {
 	configRoutes()
+	// beego.AddFuncMap模板自定义方法，使用方法:beego.AddFuncMap("模版中调用的方法名", 具体函数)
 	beego.AddFuncMap("duration", Duration)
 }
 

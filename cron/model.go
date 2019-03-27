@@ -1,5 +1,6 @@
 package cron
 
+// Mail信息结构
 type MailDto struct {
 	Priority int    `json:"priority"`
 	Metric   string `json:"metric"`
@@ -9,6 +10,7 @@ type MailDto struct {
 	Status   string `json:"status"`
 }
 
+// Sms信息结构
 type SmsDto struct {
 	Priority int    `json:"priority"`
 	Metric   string `json:"metric"`
